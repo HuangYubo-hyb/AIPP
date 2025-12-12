@@ -1,0 +1,41 @@
+-- 删除已存在的表
+DROP TABLE IF EXISTS `task`;
+DROP TABLE IF EXISTS `project`;
+DROP TABLE IF EXISTS `user`;
+
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS `user` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    `username` VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
+    `password` VARCHAR(100) NOT NULL COMMENT '加密后的密码',
+    `role` ENUM('EMPLOYEE', 'ADMIN') NOT NULL DEFAULT 'EMPLOYEE' COMMENT '用户角色',
+    `email` VARCHAR(100) COMMENT '邮箱',
+    `created_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户表';
+
+-- 创建项目表
+CREATE TABLE IF NOT EXISTS `project` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    `name` VARCHAR(100) NOT NULL COMMENT '项目名称',
+    `description` TEXT COMMENT '项目描述',
+    `type` ENUM('ARCHITECTURE', 'PRODUCT') NOT NULL COMMENT '项目类型（架构类/产品类）',
+    `creator_id` BIGINT NOT NULL COMMENT '创建者ID',
+    `created_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    FOREIGN KEY (`creator_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='项目表';
+
+-- 创建任务表
+CREATE TABLE IF NOT EXISTS `task` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    `title` VARCHAR(200) NOT NULL COMMENT '任务标题',
+    `description` TEXT COMMENT '任务描述',
+    `status` ENUM('TODO', 'DOING', 'DONE') NOT NULL DEFAULT 'TODO' COMMENT '任务状态',
+    `project_id` BIGINT NOT NULL COMMENT '所属项目ID',
+    `assignee_id` BIGINT NULL COMMENT '负责人ID',
+    `creator_id` BIGINT NOT NULL COMMENT '创建者ID',
+    `created_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    FOREIGN KEY (`project_id`) REFERENCES `project`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`assignee_id`) REFERENCES `user`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`creator_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='任务表';
