@@ -11,15 +11,19 @@ import com.aiot.demo1.service.UserService;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
+// import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collection;
+// import java.util.Arrays;
+// import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Set;
+// import java.util.stream.Collectors;
 
 @Service
 public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements TaskService {
@@ -45,11 +49,56 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     
     @Override
     public List<Task> getTasksByProjectIdWithAssigneeNames(Long projectId) {
-        // 使用关联查询获取任务及负责人名称
-        return taskMapper.selectList(
+        // 获取任务列表
+        List<Task> tasks = taskMapper.selectList(
                 new QueryWrapper<Task>()
                         .eq("project_id", projectId)
         );
+        
+        if (tasks.isEmpty()) {
+            return tasks;
+        }
+        
+        // 收集所有需要查询的用户ID
+        Set<Long> userIds = new HashSet<>();
+        for (Task task : tasks) {
+            if (task.getAssigneeId() != null) {
+                userIds.add(task.getAssigneeId());
+            }
+            if (task.getCreatorId() != null) {
+                userIds.add(task.getCreatorId());
+            }
+        }
+        
+        // 批量查询所有用户
+        Map<Long, User> userMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<User> users = userService.listByIds(userIds);
+            for (User user : users) {
+                userMap.put(user.getId(), user);
+            }
+        }
+        
+        // 填充负责人和创建人名称
+        for (Task task : tasks) {
+            // 填充负责人名称
+            if (task.getAssigneeId() != null) {
+                User assignee = userMap.get(task.getAssigneeId());
+                if (assignee != null) {
+                    task.setAssignee(assignee.getUsername());
+                }
+            }
+            
+            // 填充创建人名称
+            if (task.getCreatorId() != null) {
+                User creator = userMap.get(task.getCreatorId());
+                if (creator != null) {
+                    task.setCreator(creator.getUsername());
+                }
+            }
+        }
+        
+        return tasks;
     }
     
     @Override
